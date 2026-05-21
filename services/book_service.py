@@ -1,32 +1,26 @@
-import uuid
-from typing import Optional
+from sqlalchemy.orm import Session
 from repository.book_repository import BookRepository
 from schemas.book_schema import BookCreate
 
+
 class BookService:
-    def __init__(self):
-        self.repo = BookRepository()
 
-    async def get_books(self, status: Optional[str] = None, author: Optional[str] = None, sort_by: Optional[str] = None):
-        books = await self.repo.get_all()
+    @staticmethod
+    def get_all_books(db: Session, skip: int = 0, limit: int = 10):
+        # Передаємо сесію БД та параметри пагінації в репозиторій
+        return BookRepository.get_all(db=db, skip=skip, limit=limit)
 
-        if status:
-            books = [b for b in books if b["status"] == status]
-        if author:
-            books = [b for b in books if b["author"].lower() == author.lower()]
+    @staticmethod
+    def get_book_by_id(db: Session, book_id: str):
+        # Передаємо сесію БД для пошуку
+        return BookRepository.get_by_id(db=db, book_id=book_id)
 
-        if sort_by == "title":
-            books.sort(key=lambda x: x["title"].lower())
-        elif sort_by == "year":
-            books.sort(key=lambda x: x["year"])
-            
-        return books
+    @staticmethod
+    def create_book(db: Session, book_data: BookCreate):
+        # Передаємо сесію БД та дані для створення
+        return BookRepository.create(db=db, book_data=book_data)
 
-    async def get_book_by_id(self, book_id: uuid.UUID):
-        return await self.repo.get_by_id(book_id)
-
-    async def create_book(self, book: BookCreate):
-        return await self.repo.add(book.model_dump())
-
-    async def delete_book(self, book_id: uuid.UUID):
-        await self.repo.delete(book_id)
+    @staticmethod
+    def delete_book(db: Session, book_id: str):
+        # Передаємо сесію БД для видалення
+        return BookRepository.delete(db=db, book_id=book_id)

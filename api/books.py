@@ -1,36 +1,57 @@
-from fastapi import APIRouter, HTTPException, status, Query
-from typing import List, Optional
-from uuid import UUID
+from fastapi import APIRouter, HTTPException, Depends, status
+from typing import List
+from sqlalchemy.orm import Session
 
-from schemas.book_schema import BookCreate, BookResponse, BookStatus
+# Додали імпорт PaginatedBookResponse
+from schemas.book_schema import BookCreate, BookResponse, PaginatedBookResponse
 from services.book_service import BookService
+from database import get_db
 
 router = APIRouter(prefix="/books", tags=["Books"])
-service = BookService()
-
-@router.get("/", response_model=List[BookResponse], status_code=status.HTTP_200_OK)
-async def get_all_books(
-    book_status: Optional[BookStatus] = Query(None, description="Фільтр по статусу"),
-    author: Optional[str] = Query(None, description="Фільтр по автору"),
-    sort_by: Optional[str] = Query(None, description="Сортування ('title' або 'year')")
-):
-    status_str = book_status.value if book_status else None
-    return await service.get_books(status=status_str, author=author, sort_by=sort_by)
 
 
-@router.get("/{book_id}", response_model=BookResponse, status_code=status.HTTP_200_OK)
-async def get_book(book_id: UUID):
-    book = await service.get_book_by_id(book_id)
+@router.post("/", response_model=BookResponse, status_code=status.HTTP_201_CREATED)
+def create_book(book: BookCreate, db: Session = Depends(get_db)):
+    # Depends(get_db) автоматично відкриває сесію БД для цього запиту
+    return BookService.create_book(db=db, book_data=book)
+
+
+# Змінили response_model на PaginatedBookResponse
+@router.get("/", response_model=PaginatedBookResponse)
+def get_all_books(skip: int = 0, limit: int = 10, db: Session = Depends(get_db)):
+    # Отримуємо список книг
+    books = BookService.get_all_books(db=db, skip=skip, limit=limit)
+
+    # Вираховуємо пагінацію
+    count = len(books)
+    next_offset = skip + limit if count == limit else None
+    message = f"You received books from {skip} to {skip + count}"
+
+    # Повертаємо новий формат
+    return {
+        "books": books,
+        "pagination": {
+            "limit": limit,
+            "offset": skip,
+            "next_offset": next_offset,
+            "count": count,
+            "message": message
+        }
+    }
+
+
+@router.get("/{book_id}", response_model=BookResponse)
+def get_book(book_id: str, db: Session = Depends(get_db)):
+    book = BookService.get_book_by_id(db=db, book_id=book_id)
     if not book:
         raise HTTPException(status_code=404, detail="Книгу не знайдено")
     return book
 
 
-@router.post("/", response_model=BookResponse, status_code=status.HTTP_201_CREATED)
-async def create_book(book: BookCreate):
-    return await service.create_book(book)
-
-
 @router.delete("/{book_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_book(book_id: UUID):
-    await service.delete_book(book_id)
+def delete_book(book_id: str, db: Session = Depends(get_db)):
+    # Зберігаємо результат видалення і перевіряємо його (щоб повертати 404)
+    success = BookService.delete_book(db=db, book_id=book_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Книгу не знайдено")
+    return

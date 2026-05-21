@@ -1,7 +1,6 @@
 from pydantic import BaseModel, Field
-from uuid import UUID
 from enum import Enum
-from typing import Optional
+from typing import Optional, List
 
 class BookStatus(str, Enum):
     AVAILABLE = "наявні в бібліотеці"
@@ -18,4 +17,17 @@ class BookCreate(BookBase):
     pass
 
 class BookResponse(BookBase):
-    id: UUID
+    id: str
+
+    model_config = {"from_attributes": True}
+
+class PaginationInfo(BaseModel):
+    limit: int
+    offset: int
+    next_offset: Optional[int]
+    count: int
+    message: str
+
+class PaginatedBookResponse(BaseModel):
+    books: List[BookResponse]
+    pagination: PaginationInfo

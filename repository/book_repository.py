@@ -1,21 +1,39 @@
-import uuid
-from typing import List, Dict, Optional
+from sqlalchemy.orm import Session
+from models.book_store import Book
+from schemas.book_schema import BookCreate
+
 
 class BookRepository:
-    async def get_all(self) -> List[Dict]:
-        return books_db
 
-    async def get_by_id(self, book_id: uuid.UUID) -> Optional[Dict]:
-        for book in books_db:
-            if book["id"] == book_id:
-                return book
-        return None
+    @staticmethod
+    def get_all(db: Session, skip: int = 0, limit: int = 10):
+        """
+        Отримання списку книг з Limit-Offset пагінацією.
+        skip (offset) - скільки записів пропустити з початку.
+        limit - максимальна кількість записів, які треба повернути.
+        """
+        return db.query(Book).offset(skip).limit(limit).all()
 
-    async def add(self, book_data: dict) -> dict:
-        book_data["id"] = uuid.uuid4()
-        books_db.append(book_data)
-        return book_data
+    @staticmethod
+    def get_by_id(db: Session, book_id: str):
+        # Шукаємо книгу за її id в базі даних
+        return db.query(Book).filter(Book.id == book_id).first()
 
-    async def delete(self, book_id: uuid.UUID) -> None:
-        global books_db
-        books_db[:] = [book for book in books_db if book["id"] != book_id]
+    @staticmethod
+    def create(db: Session, book_data: BookCreate):
+        # Створюємо об'єкт моделі SQLAlchemy (розпаковуємо дані зі схеми)
+        db_book = Book(**book_data.model_dump())
+        db.add(db_book)  # Додаємо в сесію
+        db.commit()  # Зберігаємо (комітимо) в базу
+        db.refresh(db_book)  # Оновлюємо об'єкт, щоб отримати згенерований id
+        return db_book
+
+    @staticmethod
+    def delete(db: Session, book_id: str):
+        # Знаходимо книгу, і якщо вона є - видаляємо
+        db_book = db.query(Book).filter(Book.id == book_id).first()
+        if db_book:
+            db.delete(db_book)
+            db.commit()
+            return True
+        return False
