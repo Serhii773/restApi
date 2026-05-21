@@ -18,13 +18,12 @@ class BookCreate(BookBase):
 
 class BookResponse(BookBase):
     id: str
-
     model_config = {"from_attributes": True}
 
 class PaginationInfo(BaseModel):
     limit: int
-    offset: int
-    next_offset: Optional[int]
+    cursor: Optional[str] = Field(None, description="Поточний курсор (ID книги)")
+    next_cursor: Optional[str] = Field(None, description="Курсор для отримання наступної сторінки")
     count: int
     message: str
 

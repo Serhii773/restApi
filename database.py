@@ -2,23 +2,17 @@ import os
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
 
-# Беремо URL бази даних зі змінних середовища (її передасть Docker)
-# Якщо запускаємо локально (без Docker), використовуємо localhost
 SQLALCHEMY_DATABASE_URL = os.getenv(
     "DATABASE_URL",
     "postgresql://postgres:mysecretpassword@localhost:5432/library"
 )
 
-# Створюємо двигун (engine) для підключення
 engine = create_engine(SQLALCHEMY_DATABASE_URL)
 
-# Створюємо фабрику сесій (через неї ми будемо робити запити до БД)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-# Базовий клас для всіх наших майбутніх моделей (таблиць)
 Base = declarative_base()
 
-# Функція-залежність (Dependency), яка буде видавати сесію для кожного запиту
 def get_db():
     db = SessionLocal()
     try:

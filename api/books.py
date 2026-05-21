@@ -1,8 +1,7 @@
 from fastapi import APIRouter, HTTPException, Depends, status
-from typing import List
+from typing import List, Optional
 from sqlalchemy.orm import Session
 
-# Додали імпорт PaginatedBookResponse
 from schemas.book_schema import BookCreate, BookResponse, PaginatedBookResponse
 from services.book_service import BookService
 from database import get_db
@@ -12,28 +11,30 @@ router = APIRouter(prefix="/books", tags=["Books"])
 
 @router.post("/", response_model=BookResponse, status_code=status.HTTP_201_CREATED)
 def create_book(book: BookCreate, db: Session = Depends(get_db)):
-    # Depends(get_db) автоматично відкриває сесію БД для цього запиту
     return BookService.create_book(db=db, book_data=book)
 
 
-# Змінили response_model на PaginatedBookResponse
 @router.get("/", response_model=PaginatedBookResponse)
-def get_all_books(skip: int = 0, limit: int = 10, db: Session = Depends(get_db)):
-    # Отримуємо список книг
-    books = BookService.get_all_books(db=db, skip=skip, limit=limit)
+def get_all_books(cursor: Optional[str] = None, limit: int = 10, db: Session = Depends(get_db)):
+    # 1. Отримуємо список книг за курсором
+    books = BookService.get_all_books(db=db, cursor=cursor, limit=limit)
 
-    # Вираховуємо пагінацію
+    # 2. Вираховуємо пагінацію
     count = len(books)
-    next_offset = skip + limit if count == limit else None
-    message = f"You received books from {skip} to {skip + count}"
 
-    # Повертаємо новий формат
+    # Якщо ми отримали максимальну кількість книг (limit), значить є наступна сторінка.
+    # Курсором для неї стає ID останньої книги в поточному списку.
+    next_cursor = books[-1].id if count == limit else None
+
+    message = f"You received {count} books using cursor pagination"
+
+    # 3. Повертаємо новий формат
     return {
         "books": books,
         "pagination": {
             "limit": limit,
-            "offset": skip,
-            "next_offset": next_offset,
+            "cursor": cursor,
+            "next_cursor": next_cursor,
             "count": count,
             "message": message
         }
@@ -50,7 +51,6 @@ def get_book(book_id: str, db: Session = Depends(get_db)):
 
 @router.delete("/{book_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_book(book_id: str, db: Session = Depends(get_db)):
-    # Зберігаємо результат видалення і перевіряємо його (щоб повертати 404)
     success = BookService.delete_book(db=db, book_id=book_id)
     if not success:
         raise HTTPException(status_code=404, detail="Книгу не знайдено")

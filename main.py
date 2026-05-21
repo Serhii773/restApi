@@ -6,7 +6,6 @@ from database import engine, Base
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Створюємо таблиці в PostgreSQL ТІЛЬКИ якщо це НЕ тести
     if os.getenv("TESTING") != "True":
         try:
             Base.metadata.create_all(bind=engine)
@@ -16,7 +15,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="Library API",
-    description="API для управління бібліотекою (Lab 2 - PostgreSQL & Docker)",
+    description="API (Lab 3 - Cursor)",
     lifespan=lifespan
 )
 
