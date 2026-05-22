@@ -1,14 +1,13 @@
 import pytest
-from fastapi.testclient import TestClient
-from main import app
+from main import create_app
 from models.book_store import books_db
+
 
 @pytest.fixture
 def client():
-    return TestClient(app)
+    app = create_app()
+    app.config['TESTING'] = True
 
-@pytest.fixture(autouse=True)
-def clear_db():
-    # Очищує список books_db перед запуском кожного тесту
     books_db.clear()
-    yield
+    yield app.test_client()
+    books_db.clear()
