@@ -1,4 +1,5 @@
 from pydantic import BaseModel, Field
+from pydantic_mongo import ObjectIdField
 from enum import Enum
 from typing import Optional, List
 
@@ -17,9 +18,11 @@ class BookCreate(BookBase):
     pass
 
 class BookResponse(BookBase):
-    id: str
+    id: ObjectIdField = Field(alias="_id")
 
-    model_config = {"from_attributes": True}
+    model_config = {
+        "populate_by_name": True,
+    }
 
 class PaginationInfo(BaseModel):
     limit: int

@@ -1,39 +1,26 @@
-from sqlalchemy.orm import Session
-from models.book_store import Book
+from bson import ObjectId
+from motor.motor_asyncio import AsyncIOMotorDatabase
+from pydantic_mongo import PydanticObjectId
 from schemas.book_schema import BookCreate
 
 
 class BookRepository:
+    def __init__(self, db: AsyncIOMotorDatabase):
+        self.collection = db.get_collection("books")
 
-    @staticmethod
-    def get_all(db: Session, skip: int = 0, limit: int = 10):
-        """
-        Отримання списку книг з Limit-Offset пагінацією.
-        skip (offset) - скільки записів пропустити з початку.
-        limit - максимальна кількість записів, які треба повернути.
-        """
-        return db.query(Book).offset(skip).limit(limit).all()
+    async def get_all(self, skip: int = 0, limit: int = 10):
+        cursor = self.collection.find({}).skip(skip).limit(limit)
+        return await cursor.to_list(length=limit)
 
-    @staticmethod
-    def get_by_id(db: Session, book_id: str):
-        # Шукаємо книгу за її id в базі даних
-        return db.query(Book).filter(Book.id == book_id).first()
+    async def get_by_id(self, book_id):
+        oid = book_id if isinstance(book_id, ObjectId) else PydanticObjectId(str(book_id))
+        return await self.collection.find_one({"_id": oid})
 
-    @staticmethod
-    def create(db: Session, book_data: BookCreate):
-        # Створюємо об'єкт моделі SQLAlchemy (розпаковуємо дані зі схеми)
-        db_book = Book(**book_data.model_dump())
-        db.add(db_book)  # Додаємо в сесію
-        db.commit()  # Зберігаємо (комітимо) в базу
-        db.refresh(db_book)  # Оновлюємо об'єкт, щоб отримати згенерований id
-        return db_book
+    async def create(self, book_data: BookCreate):
+        book_dict = book_data.model_dump()
+        result = await self.collection.insert_one(book_dict)
+        return await self.get_by_id(result.inserted_id)
 
-    @staticmethod
-    def delete(db: Session, book_id: str):
-        # Знаходимо книгу, і якщо вона є - видаляємо
-        db_book = db.query(Book).filter(Book.id == book_id).first()
-        if db_book:
-            db.delete(db_book)
-            db.commit()
-            return True
-        return False
+    async def delete(self, book_id: str):
+        result = await self.collection.delete_one({"_id": PydanticObjectId(book_id)})
+        return result.deleted_count > 0

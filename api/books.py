@@ -1,33 +1,31 @@
 from fastapi import APIRouter, HTTPException, Depends, status
 from typing import List
-from sqlalchemy.orm import Session
+from motor.motor_asyncio import AsyncIOMotorDatabase
 
-# Додали імпорт PaginatedBookResponse
 from schemas.book_schema import BookCreate, BookResponse, PaginatedBookResponse
-from services.book_service import BookService
+from repository.book_repository import BookRepository
 from database import get_db
 
 router = APIRouter(prefix="/books", tags=["Books"])
 
 
-@router.post("/", response_model=BookResponse, status_code=status.HTTP_201_CREATED)
-def create_book(book: BookCreate, db: Session = Depends(get_db)):
-    # Depends(get_db) автоматично відкриває сесію БД для цього запиту
-    return BookService.create_book(db=db, book_data=book)
+def get_repository(db: AsyncIOMotorDatabase = Depends(get_db)):
+    return BookRepository(db)
 
 
-# Змінили response_model на PaginatedBookResponse
-@router.get("/", response_model=PaginatedBookResponse)
-def get_all_books(skip: int = 0, limit: int = 10, db: Session = Depends(get_db)):
-    # Отримуємо список книг
-    books = BookService.get_all_books(db=db, skip=skip, limit=limit)
+@router.post("/", response_model=BookResponse, response_model_by_alias=False, status_code=status.HTTP_201_CREATED)
+async def create_book(book: BookCreate, repo: BookRepository = Depends(get_repository)):
+    return await repo.create(book_data=book)
 
-    # Вираховуємо пагінацію
+
+@router.get("/", response_model=PaginatedBookResponse, response_model_by_alias=False)
+async def get_all_books(skip: int = 0, limit: int = 10, repo: BookRepository = Depends(get_repository)):
+    books = await repo.get_all(skip=skip, limit=limit)
+
     count = len(books)
     next_offset = skip + limit if count == limit else None
     message = f"You received books from {skip} to {skip + count}"
 
-    # Повертаємо новий формат
     return {
         "books": books,
         "pagination": {
@@ -40,18 +38,17 @@ def get_all_books(skip: int = 0, limit: int = 10, db: Session = Depends(get_db))
     }
 
 
-@router.get("/{book_id}", response_model=BookResponse)
-def get_book(book_id: str, db: Session = Depends(get_db)):
-    book = BookService.get_book_by_id(db=db, book_id=book_id)
+@router.get("/{book_id}", response_model=BookResponse, response_model_by_alias=False)
+async def get_book(book_id: str, repo: BookRepository = Depends(get_repository)):
+    book = await repo.get_by_id(book_id=book_id)
     if not book:
         raise HTTPException(status_code=404, detail="Книгу не знайдено")
     return book
 
 
 @router.delete("/{book_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_book(book_id: str, db: Session = Depends(get_db)):
-    # Зберігаємо результат видалення і перевіряємо його (щоб повертати 404)
-    success = BookService.delete_book(db=db, book_id=book_id)
+async def delete_book(book_id: str, repo: BookRepository = Depends(get_repository)):
+    success = await repo.delete(book_id=book_id)
     if not success:
         raise HTTPException(status_code=404, detail="Книгу не знайдено")
     return

@@ -1,27 +1,13 @@
 import os
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, declarative_base
+import motor.motor_asyncio
 
-# Беремо URL бази даних зі змінних середовища (її передасть Docker)
-# Якщо запускаємо локально (без Docker), використовуємо localhost
-SQLALCHEMY_DATABASE_URL = os.getenv(
+MONGO_URL = os.getenv(
     "DATABASE_URL",
-    "postgresql://postgres:mysecretpassword@localhost:5432/library"
+    "mongodb://mongo_admin:password@localhost:27017"
 )
 
-# Створюємо двигун (engine) для підключення
-engine = create_engine(SQLALCHEMY_DATABASE_URL)
+client = motor.motor_asyncio.AsyncIOMotorClient(MONGO_URL)
+db = client.library
 
-# Створюємо фабрику сесій (через неї ми будемо робити запити до БД)
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-
-# Базовий клас для всіх наших майбутніх моделей (таблиць)
-Base = declarative_base()
-
-# Функція-залежність (Dependency), яка буде видавати сесію для кожного запиту
 def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+    return db

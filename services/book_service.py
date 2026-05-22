@@ -1,26 +1,25 @@
-from sqlalchemy.orm import Session
+from motor.motor_asyncio import AsyncIOMotorDatabase
 from repository.book_repository import BookRepository
 from schemas.book_schema import BookCreate
-
 
 class BookService:
 
     @staticmethod
-    def get_all_books(db: Session, skip: int = 0, limit: int = 10):
-        # Передаємо сесію БД та параметри пагінації в репозиторій
-        return BookRepository.get_all(db=db, skip=skip, limit=limit)
+    async def get_all_books(db: AsyncIOMotorDatabase, skip: int = 0, limit: int = 10):
+        repo = BookRepository(db)
+        return await repo.get_all(skip=skip, limit=limit)
 
     @staticmethod
-    def get_book_by_id(db: Session, book_id: str):
-        # Передаємо сесію БД для пошуку
-        return BookRepository.get_by_id(db=db, book_id=book_id)
+    async def get_book_by_id(db: AsyncIOMotorDatabase, book_id: str):
+        repo = BookRepository(db)
+        return await repo.get_by_id(book_id=book_id)
 
     @staticmethod
-    def create_book(db: Session, book_data: BookCreate):
-        # Передаємо сесію БД та дані для створення
-        return BookRepository.create(db=db, book_data=book_data)
+    async def create_book(db: AsyncIOMotorDatabase, book_data: BookCreate):
+        repo = BookRepository(db)
+        return await repo.create(book_data=book_data)
 
     @staticmethod
-    def delete_book(db: Session, book_id: str):
-        # Передаємо сесію БД для видалення
-        return BookRepository.delete(db=db, book_id=book_id)
+    async def delete_book(db: AsyncIOMotorDatabase, book_id: str):
+        repo = BookRepository(db)
+        return await repo.delete(book_id=book_id)

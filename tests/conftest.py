@@ -1,39 +1,25 @@
-import os
-os.environ["TESTING"] = "True"
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+from mongomock_motor import AsyncMongoMockClient
 
 from main import app
-from database import Base, get_db
+from database import get_db
 
-# Створюємо окрему легку базу даних у пам'яті (SQLite) спеціально для тестів,
-# щоб не засмічувати твою основну базу PostgreSQL реальними тестами!
-SQLALCHEMY_DATABASE_URL = "sqlite:///./test_db.db"
-
-engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False})
-TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+mock_client = AsyncMongoMockClient()
+test_db = mock_client.test_library
 
 
-@pytest.fixture(scope="function", autouse=True)
-def setup_database():
-    # Перед кожним тестом створюємо чисті таблиці
-    Base.metadata.create_all(bind=engine)
+@pytest.fixture(autouse=True)
+async def setup_database():
+    await test_db.books.drop()
     yield
-    # Після кожного тесту повністю видаляємо таблиці, щоб наступний тест починався з чистого аркуша
-    Base.metadata.drop_all(bind=engine)
+    await test_db.books.drop()
 
 
 @pytest.fixture
 def client():
-    # Підміняємо реальну сесію БД на тестову всередині FastAPI
-    def override_get_db():
-        db = TestingSessionLocal()
-        try:
-            yield db
-        finally:
-            db.close()
+    async def override_get_db():
+        yield test_db
 
     app.dependency_overrides[get_db] = override_get_db
     with TestClient(app) as c:
