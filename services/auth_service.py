@@ -16,7 +16,7 @@ REFRESH_TOKEN_EXPIRE_DAYS = 7
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 bearer_scheme = HTTPBearer()
-optional_bearer_scheme = HTTPBearer(auto_error=False)  # ← додано
+optional_bearer_scheme = HTTPBearer(auto_error=False)
 
 
 def hash_password(password: str) -> str:
@@ -71,7 +71,7 @@ async def get_current_user(
     return user
 
 
-async def get_optional_current_user(  # ← додано
+async def get_optional_current_user(
     credentials: HTTPAuthorizationCredentials | None = Depends(optional_bearer_scheme),
     db: AsyncIOMotorDatabase = Depends(get_db),
 ) -> str | None:

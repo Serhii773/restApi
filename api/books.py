@@ -36,7 +36,7 @@ async def get_all_books(
     skip: int = 0,
     limit: int = 10,
     repo: BookRepository = Depends(get_repository),
-    _=Depends(rate_limit_optional),  # анонімний або авторизований
+    _=Depends(rate_limit_optional),
 ):
     books = await repo.get_all(skip=skip, limit=limit)
     count = len(books)
@@ -58,7 +58,7 @@ async def get_all_books(
 async def get_book(
     book_id: str,
     repo: BookRepository = Depends(get_repository),
-    _=Depends(rate_limit_optional),  # анонімний або авторизований
+    _=Depends(rate_limit_optional),
 ):
     book = await repo.get_by_id(book_id=book_id)
     if not book:
@@ -70,7 +70,7 @@ async def get_book(
 async def create_book(
     book: BookCreate,
     repo: BookRepository = Depends(get_repository),
-    _: dict = Depends(get_rate_limited_user),  # тільки авторизований
+    _: dict = Depends(get_rate_limited_user),
 ):
     return await repo.create(book_data=book)
 
@@ -79,7 +79,7 @@ async def create_book(
 async def delete_book(
     book_id: str,
     repo: BookRepository = Depends(get_repository),
-    _: dict = Depends(get_rate_limited_user),  # тільки авторизований
+    _: dict = Depends(get_rate_limited_user),
 ):
     if not await repo.delete(book_id=book_id):
         raise HTTPException(status_code=404, detail="Книгу не знайдено")
