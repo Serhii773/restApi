@@ -16,6 +16,7 @@ REFRESH_TOKEN_EXPIRE_DAYS = 7
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 bearer_scheme = HTTPBearer()
+optional_bearer_scheme = HTTPBearer(auto_error=False)  # ← додано
 
 
 def hash_password(password: str) -> str:
@@ -52,7 +53,7 @@ async def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
     db: AsyncIOMotorDatabase = Depends(get_db),
 ):
-    from repository.user_repository import UserRepository  # тут щоб уникнути circular import
+    from repository.user_repository import UserRepository
 
     try:
         payload = decode_token(credentials.credentials)
@@ -68,3 +69,25 @@ async def get_current_user(
     if not user:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Користувача не знайдено")
     return user
+
+
+async def get_optional_current_user(  # ← додано
+    credentials: HTTPAuthorizationCredentials | None = Depends(optional_bearer_scheme),
+    db: AsyncIOMotorDatabase = Depends(get_db),
+) -> str | None:
+    """Повертає username якщо є токен, None якщо анонімний."""
+    if not credentials:
+        return None
+    try:
+        payload = decode_token(credentials.credentials)
+        if payload.get("type") != "access":
+            return None
+        username: str = payload.get("sub")
+        if not username:
+            return None
+    except JWTError:
+        return None
+
+    from repository.user_repository import UserRepository
+    user = await UserRepository(db).get_by_username(username)
+    return user["username"] if user else None

@@ -5,7 +5,7 @@ from api.books import router as books_router
 
 app = FastAPI(
     title="Library API",
-    description="API для управління бібліотекою (Lab 6 - JWT Auth)",
+    description="API для управління бібліотекою (Lab 7 - Rate limiter)",
 )
 
 app.include_router(auth_router)

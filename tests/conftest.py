@@ -1,4 +1,5 @@
 import pytest
+from unittest.mock import AsyncMock, patch
 from fastapi.testclient import TestClient
 from mongomock_motor import AsyncMongoMockClient
 
@@ -16,6 +17,15 @@ async def setup_database():
     yield
     await test_db.books.drop()
     await test_db.users.drop()
+
+
+@pytest.fixture(autouse=True)
+def mock_redis():
+    """Мокаємо Redis щоб тести книг/auth не потребували реального Redis."""
+    mock_r = AsyncMock()
+    mock_r.zcard.return_value = 0  # завжди нижче ліміту
+    with patch("services.rate_limiter.r", mock_r):
+        yield mock_r
 
 
 @pytest.fixture

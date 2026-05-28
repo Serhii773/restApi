@@ -40,9 +40,9 @@ async def login(user_data: UserCreate, repo: UserRepository = Depends(get_user_r
 
 
 @router.post("/refresh", response_model=TokenResponse)
-async def refresh(request: RefreshRequest, repo: UserRepository = Depends(get_user_repo)):
+async def refresh(request_data: RefreshRequest, repo: UserRepository = Depends(get_user_repo)):
     try:
-        payload = decode_token(request.refresh_token)
+        payload = decode_token(request_data.refresh_token)
         if payload.get("type") != "refresh":
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Невірний тип токена")
         username: str = payload.get("sub")

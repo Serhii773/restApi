@@ -48,7 +48,7 @@ def test_refresh_with_access_token_fails(client):
 
 def test_books_without_token(client):
     res = client.get("/books/")
-    assert res.status_code == 403
+    assert res.status_code == 200
 
 
 def test_books_with_token(auth_client):
