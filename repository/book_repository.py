@@ -16,21 +16,18 @@ class BookRepository:
 
     @staticmethod
     def get_by_id(db: Session, book_id: str):
-        # Шукаємо книгу за її id в базі даних
         return db.query(Book).filter(Book.id == book_id).first()
 
     @staticmethod
     def create(db: Session, book_data: BookCreate):
-        # Створюємо об'єкт моделі SQLAlchemy (розпаковуємо дані зі схеми)
         db_book = Book(**book_data.model_dump())
-        db.add(db_book)  # Додаємо в сесію
-        db.commit()  # Зберігаємо (комітимо) в базу
-        db.refresh(db_book)  # Оновлюємо об'єкт, щоб отримати згенерований id
+        db.add(db_book)
+        db.commit()
+        db.refresh(db_book)
         return db_book
 
     @staticmethod
     def delete(db: Session, book_id: str):
-        # Знаходимо книгу, і якщо вона є - видаляємо
         db_book = db.query(Book).filter(Book.id == book_id).first()
         if db_book:
             db.delete(db_book)

@@ -5,7 +5,6 @@ import uuid
 class Book(Base):
     __tablename__ = "books"
 
-    # UUID як первинний ключ, зберігаємо як рядок
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()), index=True)
     title = Column(String, nullable=False, index=True)
     author = Column(String, nullable=False)

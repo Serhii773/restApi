@@ -8,8 +8,6 @@ from sqlalchemy.orm import sessionmaker
 from main import app
 from database import Base, get_db
 
-# Створюємо окрему легку базу даних у пам'яті (SQLite) спеціально для тестів,
-# щоб не засмічувати твою основну базу PostgreSQL реальними тестами!
 SQLALCHEMY_DATABASE_URL = "sqlite:///./test_db.db"
 
 engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False})
@@ -18,16 +16,13 @@ TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engin
 
 @pytest.fixture(scope="function", autouse=True)
 def setup_database():
-    # Перед кожним тестом створюємо чисті таблиці
     Base.metadata.create_all(bind=engine)
     yield
-    # Після кожного тесту повністю видаляємо таблиці, щоб наступний тест починався з чистого аркуша
     Base.metadata.drop_all(bind=engine)
 
 
 @pytest.fixture
 def client():
-    # Підміняємо реальну сесію БД на тестову всередині FastAPI
     def override_get_db():
         db = TestingSessionLocal()
         try:

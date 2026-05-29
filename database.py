@@ -2,8 +2,6 @@ import os
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
 
-# Беремо URL бази даних зі змінних середовища (її передасть Docker)
-# Якщо запускаємо локально (без Docker), використовуємо localhost
 SQLALCHEMY_DATABASE_URL = os.getenv(
     "DATABASE_URL",
     "postgresql://postgres:mysecretpassword@localhost:5432/library"

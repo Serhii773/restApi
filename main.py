@@ -6,7 +6,6 @@ from database import engine, Base
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Створюємо таблиці в PostgreSQL ТІЛЬКИ якщо це НЕ тести
     if os.getenv("TESTING") != "True":
         try:
             Base.metadata.create_all(bind=engine)
