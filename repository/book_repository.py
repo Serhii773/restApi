@@ -1,4 +1,5 @@
 import uuid
+from models.book_store import books_db
 from typing import List, Dict, Optional
 
 class BookRepository:
