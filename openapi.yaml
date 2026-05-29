@@ -1,0 +1,297 @@
+openapi: 3.0.3
+info:
+  title: Library API
+  description: API для управління бібліотекою
+  version: 1.0.0
+
+paths:
+  /auth/register:
+    post:
+      tags: [Auth]
+      summary: Register
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserCreate'
+      responses:
+        '201':
+          description: Успішна реєстрація
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+              example:
+                username: "testuser"
+        '400':
+          description: Користувач вже існує
+
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: Login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserCreate'
+      responses:
+        '200':
+          description: Успішний логін
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+              example:
+                access_token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                refresh_token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                token_type: "bearer"
+        '401':
+          description: Невірні облікові дані
+
+  /auth/refresh:
+    post:
+      tags: [Auth]
+      summary: Refresh
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshRequest'
+      responses:
+        '200':
+          description: Нові токени
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+              example:
+                access_token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                refresh_token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                token_type: "bearer"
+        '401':
+          description: Невірний refresh token
+
+  /books/:
+    get:
+      tags: [Books]
+      summary: Get All Books
+      parameters:
+        - name: skip
+          in: query
+          schema:
+            type: integer
+            default: 0
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+      responses:
+        '200':
+          description: Список книг з пагінацією
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedBookResponse'
+              example:
+                books:
+                  - id: "507f1f77bcf86cd799439011"
+                    title: "Кобзар"
+                    author: "Тарас Шевченко"
+                    description: "Збірка поезій"
+                    status: "наявні в бібліотеці"
+                    year: 1840
+                  - id: "507f1f77bcf86cd799439012"
+                    title: "Тіні забутих предків"
+                    author: "Михайло Коцюбинський"
+                    description: "Повість"
+                    status: "наявні в бібліотеці"
+                    year: 1911
+                pagination:
+                  limit: 10
+                  offset: 0
+                  next_offset: null
+                  count: 2
+                  message: "You received books from 0 to 2"
+        '429':
+          description: Too many requests
+
+    post:
+      tags: [Books]
+      summary: Create Book
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BookCreate'
+      responses:
+        '201':
+          description: Книгу створено
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BookResponse'
+              example:
+                id: "507f1f77bcf86cd799439013"
+                title: "Нова книга"
+                author: "Новий автор"
+                description: "Опис нової книги"
+                status: "наявні в бібліотеці"
+                year: 2024
+        '403':
+          description: Не авторизований
+
+  /books/{book_id}:
+    get:
+      tags: [Books]
+      summary: Get Book
+      parameters:
+        - name: book_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Книга знайдена
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BookResponse'
+              example:
+                id: "507f1f77bcf86cd799439011"
+                title: "Кобзар"
+                author: "Тарас Шевченко"
+                description: "Збірка поезій"
+                status: "наявні в бібліотеці"
+                year: 1840
+        '404':
+          description: Книгу не знайдено
+
+    delete:
+      tags: [Books]
+      summary: Delete Book
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: book_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Книгу видалено
+        '404':
+          description: Книгу не знайдено
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+
+  schemas:
+    UserCreate:
+      type: object
+      required: [username, password]
+      properties:
+        username:
+          type: string
+          minLength: 3
+        password:
+          type: string
+          minLength: 6
+
+    UserResponse:
+      type: object
+      properties:
+        username:
+          type: string
+
+    TokenResponse:
+      type: object
+      properties:
+        access_token:
+          type: string
+        refresh_token:
+          type: string
+        token_type:
+          type: string
+
+    RefreshRequest:
+      type: object
+      required: [refresh_token]
+      properties:
+        refresh_token:
+          type: string
+
+    BookCreate:
+      type: object
+      required: [title, author, year]
+      properties:
+        title:
+          type: string
+          minLength: 1
+        author:
+          type: string
+          minLength: 1
+        description:
+          type: string
+          nullable: true
+        status:
+          type: string
+          enum: ["наявні в бібліотеці", "видані комусь"]
+          default: "наявні в бібліотеці"
+        year:
+          type: integer
+          minimum: 1
+
+    BookResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        author:
+          type: string
+        description:
+          type: string
+          nullable: true
+        status:
+          type: string
+        year:
+          type: integer
+
+    PaginationInfo:
+      type: object
+      properties:
+        limit:
+          type: integer
+        offset:
+          type: integer
+        next_offset:
+          type: integer
+          nullable: true
+        count:
+          type: integer
+        message:
+          type: string
+
+    PaginatedBookResponse:
+      type: object
+      properties:
+        books:
+          type: array
+          items:
+            $ref: '#/components/schemas/BookResponse'
+        pagination:
+          $ref: '#/components/schemas/PaginationInfo'
