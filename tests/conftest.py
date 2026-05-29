@@ -9,6 +9,5 @@ def client():
 
 @pytest.fixture(autouse=True)
 def clear_db():
-    # Очищує список books_db перед запуском кожного тесту
     books_db.clear()
     yield

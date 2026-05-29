@@ -45,17 +45,14 @@ def test_get_book_not_found(client):
 def test_delete_book(client):
     create_resp = client.post("/books/", json={"title": "Кобзар", "author": "Тарас Шевченко", "year": 1840})
     book_id = create_resp.json()["id"]
-    
-    # Видалення
+
     del_resp = client.delete(f"/books/{book_id}")
     assert del_resp.status_code == 204
-    
-    # Перевірка, що не знайдено
+
     get_resp = client.get(f"/books/{book_id}")
     assert get_resp.status_code == 404
 
 def test_delete_book_idempotent(client):
     random_id = str(uuid.uuid4())
-    # Ідемпотентність: видалення неіснуючого ID повертає 204 без помилок
     del_resp = client.delete(f"/books/{random_id}")
     assert del_resp.status_code == 204
